@@ -61,7 +61,7 @@ class Encoder(nn.Module):
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
                 # x = attn_layer(x, attn_mask=attn_mask)
                 x = conv_layer(x)
-            # x = self.attn_layers[-1](x)
+            x = self.attn_layers[-1](x)
         else:
             for attn_layer in self.attn_layers:
                 x = attn_layer(x, attn_mask=attn_mask)
