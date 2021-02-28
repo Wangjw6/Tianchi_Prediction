@@ -4,7 +4,6 @@ from models.model import Informer
 from data.ali_dataloader import *
 from utils.tools import EarlyStopping, adjust_learning_rate
 from utils.metrics import metric,evaluate_metrics
-import matplotlib.pyplot as plt
 import numpy as np
 
 import torch
@@ -197,14 +196,18 @@ class Exp_Informer(Exp_Basic):
 
             adjust_learning_rate(model_optim, epoch+1, self.args)
             
-        best_model_path = path+'/'+'checkpoint.pth'
-        self.model.load_state_dict(torch.load(best_model_path))
-        
+        # best_model_path = path+'/'+'checkpoint.pth'
+        # self.model.load_state_dict(torch.load(best_model_path))
+        # print('Model is saved at', best_model_path)
         return self.model
 
     def test(self, setting):
         test_data, test_loader = self._get_data(flag='test',data_type=100)
-        
+        path = './checkpoints/' + setting +'/'+'checkpoint.pth'
+        try:
+            self.model.load_state_dict(torch.load(path))
+        except:
+            print('Model can not be load from',path )
         self.model.eval()
         
         preds = []
@@ -266,58 +269,43 @@ class Exp_Informer(Exp_Basic):
         best_model_path = path + '/' + 'checkpoint.pth'
         print(best_model_path)
 
-        # from os import listdir
-        # from os.path import isfile, join
-        # onlyfiles = [f for f in listdir(path + '/') if isfile(join(path + '/', f))]
-        # print('Files')
-        # print(onlyfiles)
+        from os import listdir
+        from os.path import isfile, join
+        path = os.path.abspath(os.pardir)
+        print('Path', path)
+        onlyfiles = [f for f in listdir(path + '/') if isfile(join(path + '/', f))]
+        print('Files')
+        print(onlyfiles)
+
+        arr = os.listdir(path + '/')
+        print('All the stuff')
+        print(arr)
+
+        if os.path.exists('./result/'):
+            print('HAS RESULT FOLDER')
 
         try:
             self.model.load_state_dict(torch.load(best_model_path))
+            print('Model Loaded!')
         except:
             print('!!!Can not load the mdoel')
         self.model.eval()
+
         for d in os.listdir('../tcdata/enso_round1_test_20210201'):
-            print('Predicting: ', d)
             test_data, test_loader = self._get_data(flag='test', mode=1,
                                                     tcfile='../tcdata/enso_round1_test_20210201/' + d)
 
-            preds = []
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
-                print('Round', i)
-                batch_x = batch_x.double()  # .to(self.device)
-                batch_y = batch_y.double()
-                batch_x_mark = batch_x_mark.double()  # .to(self.device)
-                batch_y_mark = batch_y_mark.double()  # .to(self.device)
+            batch_x = torch.tensor(test_data.data_x, dtype=torch.double).view(1, 12, -1)
 
-                # decoder input
-                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).double()
-                dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).double()  # .to(self.device)
-                # encoder - decoder
-                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+            batch_x_mark = batch_x
 
-                pred = outputs.detach().cpu().numpy()
-                print('Pred shape', pred.shape)
-                preds.append(pred)
+            outputs = self.model(batch_x, batch_x, batch_x, batch_x)
 
-            preds = np.array(preds)
-            print('test shape:', preds.shape)
-            preds = preds.reshape(-1, 24)
-            print('test shape:', preds.shape)
+            pred = outputs.detach().cpu().numpy()
+            pred = pred.reshape(-1, )
+            np.save('./result/' + d, pred)
 
-            # result save
-            folder_path = 'result/'
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
-
-            np.save(folder_path + '/' + d, preds)
-
-        def compress(res_dir='./result', output_dir='result.zip'):
-            z = zipfile.ZipFile(output_dir, 'w')
-            for d in os.listdir(res_dir):
-                z.write(res_dir + os.sep + d)
-            z.close()
-
-        compress()
-        print('done!')
+        print('Prediction done! See below:')
+        arr = os.listdir('./result/')
+        print(arr)
         return

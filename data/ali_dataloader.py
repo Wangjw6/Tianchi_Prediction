@@ -1,7 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import  pandas as pd
-plt.style.use("ggplot")
 
 def expand_year(data):
     data_expand=[]

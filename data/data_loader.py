@@ -235,11 +235,10 @@ class Dataset_Ali(Dataset):
         data = df_data.values
 
         datax = data[:,:-1]
-        datay = data[:,-1]
         self.data_x = datax[border1:border2]
         self.data_y = data[border1:border2]
         if self.data_type==90 or self.data_type==100:
-            self.data_x = data[:,:-1]
+            self.data_x = datax
             self.data_y = data
 
 
@@ -307,7 +306,7 @@ class Dataset_Alitest(Dataset):
         for i in range(feature.shape[-1]):
             # spatial-wise feature accumulation
             ## mean
-            s = expand_year2(feature[:, :, :, i])
+            s = (feature[:, :, :, i])
             s1 = s.reshape(12, -1)
             for j in range(s1.shape[1]):
                 pd_data[f[i] + '_' + str(j)] = s1[:, j].tolist()

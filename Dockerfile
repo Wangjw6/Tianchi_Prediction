@@ -12,7 +12,9 @@ WORKDIR /
 ## 这里使用清华镜像加速安装
 RUN pip --default-timeout=3600 install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
+
 ## 镜像启动后统一执行 sh run.sh
+USER root
 CMD ["sh", "run.sh"]
 
  

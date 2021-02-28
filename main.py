@@ -2,6 +2,9 @@ import argparse
 import os
 from exp.exp_informer import Exp_Informer
 from data.generate_data import *
+from random import seed
+import torch
+import zipfile
 parser = argparse.ArgumentParser(description='[Informer] Long Sequences Forecasting')
 
 parser.add_argument('--model', type=str,  default='informer',help='model of the experiment')
@@ -44,26 +47,36 @@ parser.add_argument('--use_gpu', type=bool, default=False, help='use gpu')
 parser.add_argument('--gpu', type=int, default=0, help='gpu')
 
 args = parser.parse_args()
-
+def compress(res_dir='./result', output_dir='result.zip'):
+    import zipfile
+    z = zipfile.ZipFile(output_dir, 'w')
+    for d in os.listdir(res_dir):
+        z.write(res_dir + os.sep + d)
+    z.close()
 
 Exp = Exp_Informer
 
-for ii in range(args.itr):
-    setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_at{}_eb{}_{}_{}'.format(args.model, args.data, args.features, 
-                args.seq_len, args.label_len, args.pred_len,
-                args.d_model, args.n_heads, args.e_layers, args.d_layers, args.d_ff, args.attn, args.embed, args.des, ii)
-    
-    # try:
-    #     nc_npy()
-    # except:
-    #     print('no npy prcoessed')
+if __name__ == '__main__':
+    seed(1)
+    np.random.seed(1)
+    torch.manual_seed(1)
 
     exp = Exp(args)
-    print('>>>>>>>start training>>>>>>>>>>>>>>>>>>>>>>>>>>')
-    exp.train('1')
+    try:
+        print('>>>>>>>start training>>>>>>>>>>>>>>>>>>>>>>>>>>')
+        exp.train('1')
 
-    print('>>>>>>>testing<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-    exp.test('1')
-
-
-    exp.compet()
+        print('>>>>>>>testing<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+        exp.test('1')
+    except:
+        pass
+    # try:
+    #     exp.compet()
+    #
+    #     compress()
+    #     print('Zip done')
+    #
+    #     arr = os.listdir('./')
+    #     print(arr)
+    # except:
+    #     print('NO GAME HERE')

@@ -51,6 +51,7 @@ class EarlyStopping:
             # except:
             print( 'Validation loss decreased (%.6f  -->   %.6f).  Saving model ...'%(self.val_loss_min,val_loss))
         torch.save(model.state_dict(), path+'/'+'checkpoint.pth')
+        print('Model is saved at',path+'/'+'checkpoint.pth')
         self.val_loss_min = val_loss
 
 class dotdict(dict):
