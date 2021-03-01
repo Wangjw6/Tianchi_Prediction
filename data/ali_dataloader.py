@@ -37,12 +37,6 @@ def data_to_pd(path_feature='G:\\base\\aliyun\\SODA_train.npy',path_target='G:\\
         ## mean
         s = expand_year2(feature[i])
         s1 = s.reshape(target.shape[0],-1)
-
-        # pd_data[f[i]+'mean'] = np.mean(s1,axis=1).tolist()
-        # pd_data[f[i]+'var'] = np.var(s1, axis=1).tolist()
-        # pd_data[f[i] + 'max'] = np.max(s1, axis=1).tolist()
-        # pd_data[f[i] + 'min'] = np.min(s1, axis=1).tolist()
-        ## all
         for j in range(s1.shape[1]):
             pd_data[f[i]+'_'+str(j)] = s1[:,j].tolist()
 
