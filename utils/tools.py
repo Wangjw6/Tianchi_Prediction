@@ -25,6 +25,7 @@ class EarlyStopping:
         self.early_stop = False
         self.val_loss_min = np.Inf
         self.delta = delta
+        self.flag = 0
 
     def __call__(self, val_loss, model, path):
         score = -val_loss
@@ -33,6 +34,7 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model, path)
         elif score < self.best_score + self.delta:
             self.counter += 1
+            self.flag=1
             # try:
             #     print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             # except:

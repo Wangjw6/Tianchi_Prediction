@@ -297,7 +297,7 @@ class Exp_Informer(Exp_Basic):
                 vy = y - torch.mean(y,0)
                 corr = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
 
-                loss = criterion(outputs, batch_y) + 0.1*corr
+                loss = criterion(outputs, batch_y)# + 0.1*corr
 
                 train_loss.append(loss.item())
 
@@ -305,32 +305,36 @@ class Exp_Informer(Exp_Basic):
                 model_optim.step()
 
             train_loss = np.average(train_loss)
+            vali_loss, mae, score = self.test('1')
+            early_stopping(-score, self.model, path)
+            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
+                epoch + 1, 0, np.average(train_loss), vali_loss, score))
+            # vali_loss = self.vali(None, vali_loader, criterion)
+            # test_loss = self.vali(None, test_loader, criterion)
 
-            vali_loss = self.vali(None, vali_loader, criterion)
-            test_loss = self.vali(None, test_loader, criterion)
-
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-                epoch + 1, 0, train_loss, vali_loss, test_loss))
-            early_stopping(vali_loss, self.model, path)
+            # print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
+            #     epoch + 1, 0, train_loss, vali_loss, test_loss))
+            # early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
 
             adjust_learning_rate(model_optim, epoch + 1, self.args)
 
-        # best_model_path = path+'/'+'checkpoint.pth'
-        # self.model.load_state_dict(torch.load(best_model_path))
-        # print('Model is saved at', best_model_path)
+        best_model_path = path+'/'+'checkpoint.pth'
+        self.model.load_state_dict(torch.load(best_model_path))
+        print('Model is saved at', best_model_path)
+        self.model.eval()
         return self.model
 
     def test(self, setting):
         test_data, test_loader = self._get_data(flag='test', data_type=100)
-        path = './checkpoints/' + setting + '/' + 'checkpoint.pth'
-        try:
-            self.model.load_state_dict(torch.load(path))
-        except:
-            print('Model can not be load from', path)
-        self.model.eval()
+        # path = './checkpoints/' + setting + '/' + 'checkpoint.pth'
+        # try:
+        #     self.model.load_state_dict(torch.load(path))
+        # except:
+        #     print('Model can not be load from', path)
+        # self.model.eval()
 
         preds = []
         trues = []
@@ -345,7 +349,7 @@ class Exp_Informer(Exp_Basic):
             dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).double()
             dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).double()  # .to(self.device)
             # encoder - decoder
-            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24)
+            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24).detach()
             batch_y = batch_y[:, -self.args.pred_len:, -1]  # .to(self.device)
 
             pred = outputs.detach().cpu().numpy()  # .squeeze()
@@ -364,11 +368,6 @@ class Exp_Informer(Exp_Basic):
         trues = trues.reshape(-1, 24)
 
         print('test shape:', preds.shape, trues.shape)
-
-        # result save
-        folder_path = './results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
         try:
             mae, mse, rmse, mape, mspe = metric(preds[:, :, -1], trues[:, :, -1])
             score = evaluate_metrics(preds[:, :, -1], trues[:, :, -1])
@@ -376,11 +375,8 @@ class Exp_Informer(Exp_Basic):
             mae, mse, rmse, mape, mspe = metric(preds, trues)
             score = evaluate_metrics(preds, trues)
         print('mse:{}, mae:{}, score:{}'.format(mse, mae, score))
-        return
+        return mse, mae, score
 
-        np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
-        np.save(folder_path + 'pred.npy', preds)
-        np.save(folder_path + 'true.npy', trues)
 
         return
 
@@ -431,6 +427,5 @@ class Exp_Informer(Exp_Basic):
         arr = os.listdir('./result/')
         print(arr)
         return
-
 
 

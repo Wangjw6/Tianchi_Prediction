@@ -65,13 +65,7 @@ class Informer(nn.Module):
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
         enc_out = self.encoder(enc_out, attn_mask=enc_self_mask)
-        # x_dec=dec_inp
-        # dec_out = self.dec_embedding(x_dec, x_mark_dec)
-        # dec_out = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
 
-        # dec_out = self.projection(enc_out)
         dec_out = self.predict(enc_out.view(-1,4*self.d_model))
-        # dec_out = self.end_conv1(dec_out)
-        # dec_out = self.end_conv2(dec_out.transpose(2,1)).transpose(1,2)
-        # print(dec_out.shape)
+
         return dec_out#[:,-self.pred_len:,:] # [B, L, D]

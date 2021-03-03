@@ -28,7 +28,7 @@ parser.add_argument('--d_layers', type=int, default=2, help='num of decoder laye
 parser.add_argument('--d_ff', type=int, default=120, help='dimension of fcn')
 parser.add_argument('--factor', type=int, default=1, help='prob sparse factor')
 
-parser.add_argument('--dropout', type=float, default=0.05, help='dropout')
+parser.add_argument('--dropout', type=float, default=0.01, help='dropout')
 parser.add_argument('--attn', type=str, default='prob', help='attention [prob, full]')
 parser.add_argument('--embed', type=str, default='fixed', help='embedding type [fixed, learned]')
 parser.add_argument('--activation', type=str, default='relu',help='activation')
@@ -37,7 +37,7 @@ parser.add_argument('--num_workers', type=int, default=0, help='data loader num 
 parser.add_argument('--itr', type=int, default=2, help='each params run iteration')
 parser.add_argument('--train_epochs', type=int, default=100, help='train epochs')
 parser.add_argument('--batch_size', type=int, default=32, help='input data batch size')
-parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
+parser.add_argument('--patience', type=int, default=12, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
 parser.add_argument('--des', type=str, default='test',help='exp description')
 parser.add_argument('--loss', type=str, default='mse',help='loss function')
