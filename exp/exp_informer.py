@@ -265,56 +265,41 @@ class Exp_Informer(Exp_Basic):
         for epoch in range(self.args.train_epochs):
             iter_count = 0
             train_loss = []
-            index = np.random.randint(0,len(train_data_loaders))
-            train_loader = train_data_loaders[index]
-            test_loader = test_data_loaders[index]
-            vali_loader = vali_data_loaders[index]
             self.model.train()
-            print('Index', index)
-            for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
-                iter_count += 1
+            for index in range(len(train_data_loaders)):
+                train_loader = train_data_loaders[index]
+                for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
+                    iter_count += 1
 
-                model_optim.zero_grad()
+                    model_optim.zero_grad()
 
-                batch_x = batch_x.double()  # .to(self.device)
-                batch_y = batch_y.double()
+                    batch_x = batch_x.double()  # .to(self.device)
+                    batch_y = batch_y.double()
 
-                batch_x_mark = batch_x_mark.double()  # .to(self.device)
-                batch_y_mark = batch_y_mark.double()  # .to(self.device)
+                    batch_x_mark = batch_x_mark.double()  # .to(self.device)
+                    batch_y_mark = batch_y_mark.double()  # .to(self.device)
 
-                # decoder input
-                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :-1]).double()
-                dec_inp = torch.cat([batch_y[:, :self.args.label_len, :-1], dec_inp],
-                                    dim=1).double()  # .to(self.device)
-                # encoder - decoder
-                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24)
+                    # decoder input
+                    dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :-1]).double()
+                    dec_inp = torch.cat([batch_y[:, :self.args.label_len, :-1], dec_inp],
+                                        dim=1).double()  # .to(self.device)
+                    # encoder - decoder
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24)
+                    batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
 
-                batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
+                    loss = criterion(outputs, batch_y)# + 0.1*corr
 
-                x = outputs
-                y = batch_y
-                vx = x - torch.mean(x,0)
-                vy = y - torch.mean(y,0)
-                corr = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+                    train_loss.append(loss.item())
 
-                loss = criterion(outputs, batch_y)# + 0.1*corr
-
-                train_loss.append(loss.item())
-
-                loss.backward()
-                model_optim.step()
+                    loss.backward()
+                    model_optim.step()
 
             train_loss = np.average(train_loss)
             vali_loss, mae, score = self.test('1')
             early_stopping(-score, self.model, path)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
                 epoch + 1, 0, np.average(train_loss), vali_loss, score))
-            # vali_loss = self.vali(None, vali_loader, criterion)
-            # test_loss = self.vali(None, test_loader, criterion)
 
-            # print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-            #     epoch + 1, 0, train_loss, vali_loss, test_loss))
-            # early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
@@ -328,7 +313,10 @@ class Exp_Informer(Exp_Basic):
         return self.model
 
     def test(self, setting):
-        test_data, test_loader = self._get_data(flag='test', data_type=100)
+        try:
+            self.test_data = self.test_data
+        except:
+            self.test_data, self.test_loader = self._get_data(flag='test', data_type=100)
         # path = './checkpoints/' + setting + '/' + 'checkpoint.pth'
         # try:
         #     self.model.load_state_dict(torch.load(path))
@@ -339,7 +327,7 @@ class Exp_Informer(Exp_Basic):
         preds = []
         trues = []
         hiss = []
-        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
+        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(self.test_loader):
             batch_x = batch_x.double()  # .to(self.device)
             batch_y = batch_y.double()
             batch_x_mark = batch_x_mark.double()  # .to(self.device)
