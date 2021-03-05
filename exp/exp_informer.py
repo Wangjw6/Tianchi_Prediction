@@ -289,16 +289,16 @@ class Exp_Informer(Exp_Basic):
 
                     loss = criterion(outputs, batch_y)# + 0.1*corr
 
-                    train_loss.append(loss.item())
+                    # train_loss.append(loss.item())
 
                     loss.backward()
                     model_optim.step()
 
-            train_loss = np.average(train_loss)
+            # train_loss = np.average(train_loss)
             vali_loss, mae, score = self.test('1')
             early_stopping(-score, self.model, path)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
-                epoch + 1, 0, np.average(train_loss), vali_loss, score))
+                epoch + 1, 0, 0., vali_loss, score))
 
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -340,10 +340,9 @@ class Exp_Informer(Exp_Basic):
             outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24).detach()
             batch_y = batch_y[:, -self.args.pred_len:, -1]  # .to(self.device)
 
-            pred = outputs.detach().cpu().numpy()  # .squeeze()
-            true = batch_y.detach().cpu().numpy()  # .squeeze()
+            pred = outputs.detach()  # .squeeze()
+            true = batch_y.detach()  # .squeeze()
 
-            hiss.append(batch_x.detach().cpu().numpy())
             preds.append(pred)
             trues.append(true)
 
