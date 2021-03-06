@@ -261,13 +261,20 @@ class Exp_Informer(Exp_Basic):
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
-
+        try:
+            best_model_path = path + '/' + 'checkpoint.pth'
+            self.model.load_state_dict(torch.load(best_model_path))
+            print('Load saved model')
+        except:
+            pass
         for epoch in range(self.args.train_epochs):
             iter_count = 0
             train_loss = []
             self.model.train()
+            begin = time.time()
             for index in range(len(train_data_loaders)):
                 train_loader = train_data_loaders[index]
+                begin2 = time.time()
                 for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                     iter_count += 1
 
@@ -276,15 +283,8 @@ class Exp_Informer(Exp_Basic):
                     batch_x = batch_x.double()  # .to(self.device)
                     batch_y = batch_y.double()
 
-                    batch_x_mark = batch_x_mark.double()  # .to(self.device)
-                    batch_y_mark = batch_y_mark.double()  # .to(self.device)
-
-                    # decoder input
-                    dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :-1]).double()
-                    dec_inp = torch.cat([batch_y[:, :self.args.label_len, :-1], dec_inp],
-                                        dim=1).double()  # .to(self.device)
                     # encoder - decoder
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24)
+                    outputs = self.model(batch_x, 0., 0., 0.).view(-1, 24)
                     batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
 
                     loss = criterion(outputs, batch_y)# + 0.1*corr
@@ -294,11 +294,13 @@ class Exp_Informer(Exp_Basic):
                     loss.backward()
                     model_optim.step()
 
+                print('Finised Index', index, 'cost',time.time()-begin2)
+            end = time.time()
             # train_loss = np.average(train_loss)
             vali_loss, mae, score = self.test('1')
             early_stopping(-score, self.model, path)
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
-                epoch + 1, 0, 0., vali_loss, score))
+            print("Epoch: {0}, Time cost: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
+                epoch + 1, end-begin, 0., vali_loss, score))
 
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -314,15 +316,9 @@ class Exp_Informer(Exp_Basic):
 
     def test(self, setting):
         try:
-            self.test_data = self.test_data
+            self.test_data =self.test_data
         except:
             self.test_data, self.test_loader = self._get_data(flag='test', data_type=100)
-        # path = './checkpoints/' + setting + '/' + 'checkpoint.pth'
-        # try:
-        #     self.model.load_state_dict(torch.load(path))
-        # except:
-        #     print('Model can not be load from', path)
-        # self.model.eval()
 
         preds = []
         trues = []
@@ -340,8 +336,8 @@ class Exp_Informer(Exp_Basic):
             outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24).detach()
             batch_y = batch_y[:, -self.args.pred_len:, -1]  # .to(self.device)
 
-            pred = outputs.detach()  # .squeeze()
-            true = batch_y.detach()  # .squeeze()
+            pred = outputs.detach().cpu().numpy()  # .squeeze()
+            true = batch_y.detach().cpu().numpy()  # .squeeze()
 
             preds.append(pred)
             trues.append(true)
@@ -363,6 +359,8 @@ class Exp_Informer(Exp_Basic):
             score = evaluate_metrics(preds, trues)
         print('mse:{}, mae:{}, score:{}'.format(mse, mae, score))
         return mse, mae, score
+
+        return
 
 
         return

@@ -35,7 +35,7 @@ parser.add_argument('--activation', type=str, default='relu',help='activation')
 parser.add_argument('--num_workers', type=int, default=0, help='data loader num workers')
 
 parser.add_argument('--itr', type=int, default=2, help='each params run iteration')
-parser.add_argument('--train_epochs', type=int, default=6, help='train epochs')
+parser.add_argument('--train_epochs', type=int, default=12, help='train epochs')
 parser.add_argument('--batch_size', type=int, default=16, help='input data batch size')
 parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.00002, help='optimizer learning rate')
