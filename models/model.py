@@ -45,11 +45,20 @@ class Informer(nn.Module):
         self.hidden  = d_model*12
         self.predict = nn.Linear(self.hidden, 24, bias=True)
         self.d_model = d_model
+        self.activation = F.relu
+        self.predicts = []
+        for k in range(4):
+            self.predicts.append(nn.Linear(self.hidden, (k+1)*6, bias=True))
+        self.predicts = nn.ModuleList(self.predicts)
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, 
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
         enc_out = self.encoder(enc_out, attn_mask=enc_self_mask)
         # print('enc_out',enc_out.shape)
-        dec_out = self.predict(enc_out.view(-1,self.hidden))
+        # dec_out = self.predict(enc_out.view(-1,self.hidden))
         # print('dec_out', dec_out.shape)
+        # dec_out = dec_out + self.activation(dec_out)
+        dec_out = []
+        for k in range(len(self.predicts)):
+            dec_out.append(self.predicts[k](enc_out.view(-1,self.hidden)))
         return dec_out#[:,-self.pred_len:,:] # [B, L, D]

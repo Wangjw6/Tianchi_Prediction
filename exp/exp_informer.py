@@ -261,20 +261,15 @@ class Exp_Informer(Exp_Basic):
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
-        try:
-            best_model_path = path + '/' + 'checkpoint.pth'
-            self.model.load_state_dict(torch.load(best_model_path))
-            print('Load saved model')
-        except:
-            pass
+
         for epoch in range(self.args.train_epochs):
             iter_count = 0
-            train_loss = []
+
             self.model.train()
-            begin = time.time()
             for index in range(len(train_data_loaders)):
                 train_loader = train_data_loaders[index]
-                begin2 = time.time()
+                train_loss = []
+                begin_ = time.time()
                 for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                     iter_count += 1
 
@@ -283,24 +278,33 @@ class Exp_Informer(Exp_Basic):
                     batch_x = batch_x.double()  # .to(self.device)
                     batch_y = batch_y.double()
 
+                    batch_x_mark = batch_x_mark.double()  # .to(self.device)
+                    batch_y_mark = batch_y_mark.double()  # .to(self.device)
+
+                    # decoder input
+                    dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :-1]).double()
+                    dec_inp = torch.cat([batch_y[:, :self.args.label_len, :-1], dec_inp],
+                                        dim=1).double()  # .to(self.device)
                     # encoder - decoder
-                    outputs = self.model(batch_x, 0., 0., 0.).view(-1, 24)
-                    batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                    # batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
 
-                    loss = criterion(outputs, batch_y)# + 0.1*corr
+                    loss = 0
+                    for k in range(len(outputs)):
+                        loss+=criterion(outputs[k].view(-1, (k+1)*6),batch_y[:, -(k+1)*6:, -1].view(-1, outputs[k].size(1)))
+                    # loss = criterion(outputs, batch_y)# + 0.1*corr
 
-                    # train_loss.append(loss.item())
+                    train_loss.append(loss.item())
 
                     loss.backward()
                     model_optim.step()
 
-                print('Finised Index', index, 'cost',time.time()-begin2)
-            end = time.time()
-            # train_loss = np.average(train_loss)
+                print('Finished Index',index,'Loss',np.average(train_loss),'Cost',time.time()-begin_)
+
             vali_loss, mae, score = self.test('1')
             early_stopping(-score, self.model, path)
-            print("Epoch: {0}, Time cost: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
-                epoch + 1, end-begin, 0., vali_loss, score))
+            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
+                epoch + 1, 0, np.average(train_loss), vali_loss, score))
 
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -316,9 +320,15 @@ class Exp_Informer(Exp_Basic):
 
     def test(self, setting):
         try:
-            self.test_data =self.test_data
+            self.test_data = self.test_data
         except:
             self.test_data, self.test_loader = self._get_data(flag='test', data_type=100)
+        # path = './checkpoints/' + setting + '/' + 'checkpoint.pth'
+        # try:
+        #     self.model.load_state_dict(torch.load(path))
+        # except:
+        #     print('Model can not be load from', path)
+        # self.model.eval()
 
         preds = []
         trues = []
@@ -333,17 +343,23 @@ class Exp_Informer(Exp_Basic):
             dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).double()
             dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).double()  # .to(self.device)
             # encoder - decoder
-            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24).detach()
+            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)#.view(-1, 24).detach()
             batch_y = batch_y[:, -self.args.pred_len:, -1]  # .to(self.device)
 
-            pred = outputs.detach().cpu().numpy()  # .squeeze()
+            pred = np.zeros([batch_y.size(0),len(outputs),24])
+            for k in range(len(outputs)):
+                pred[:,k,-(k+1)*6:] = outputs[k].view(-1, (k+1)*6).detach().cpu().numpy()
+
+            pred = np.sum(pred,axis=1)
+            for k in range(len(outputs)):
+                pred[:,:(k+1)*6] = pred[:,:(k+1)*6]/(k+1)
+            # pred = outputs.detach().cpu().numpy()  # .squeeze()
             true = batch_y.detach().cpu().numpy()  # .squeeze()
 
             preds.append(pred)
             trues.append(true)
 
         preds = np.array(preds)
-        hiss = np.array(hiss)
         trues = np.array(trues)
 
         print('test shape:', preds.shape, trues.shape)
@@ -359,8 +375,6 @@ class Exp_Informer(Exp_Basic):
             score = evaluate_metrics(preds, trues)
         print('mse:{}, mae:{}, score:{}'.format(mse, mae, score))
         return mse, mae, score
-
-        return
 
 
         return
@@ -401,7 +415,12 @@ class Exp_Informer(Exp_Basic):
             batch_x = torch.tensor(val, dtype=torch.double).permute(0, 3, 1, 2).reshape(1, 12, -1)
             batch_x_mark = batch_x
             outputs = self.model(batch_x, batch_x, batch_x, batch_x)
-            pred = outputs.detach().cpu().numpy()
+            pred = np.zeros([batch_x.size(0),len(outputs),24])
+            for k in range(len(outputs)):
+                pred[:,k,-(k+1)*6:] = outputs[k].view(-1, (k+1)*6).detach().cpu().numpy()
+            pred = np.sum(pred,axis=1)
+            for k in range(len(outputs)):
+                pred[:,:(k+1)*6] = pred[:,:(k+1)*6]/(k+1)
             pred = pred.reshape(-1, )
             test_predicts_dict[file_name] = pred
         #     test_predicts_dict[file_name] = model.predict(val.reshape([-1,12])[0,:])
