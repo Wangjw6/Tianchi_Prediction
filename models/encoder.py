@@ -12,7 +12,7 @@ class ConvLayer(nn.Module):
                                   padding=padding)
         self.norm = nn.BatchNorm1d(c_in)
         self.activation = nn.ELU()
-        self.maxPool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
+        self.maxPool = nn.AdaptiveAvgPool2d((12,36))
 
     def forward(self, x):
         x = self.downConv(x.permute(0, 2, 1))
@@ -56,11 +56,9 @@ class Encoder(nn.Module):
         self.conv_layers = nn.ModuleList(conv_layers) if conv_layers is not None else None
         self.norm = norm_layer
         self.tcn_layers = tcn_layers
-        self.lstm_layers = nn.LSTM(input_size=64,hidden_size=64,batch_first=True)
     def forward(self, x, attn_mask=None):
         # x [B, L, D]
         if self.tcn_layers is not None:
-            # x, (hn, cn) = self.lstm_layers(x )
             x = self.tcn_layers(x)
             # x = self.attn_layers[-1](x)
         else:

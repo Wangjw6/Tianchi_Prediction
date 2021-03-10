@@ -193,15 +193,9 @@ class Dataset_Ali(Dataset):
 
 
     def __read_data__(self, ):
-        scaler = StandardScaler()
-
-
-        datax = self.data[:,:-1]
-        self.data_x = datax
+        self.data_x =  self.data[:,:-1]
         self.data_y = self.data
-        if self.data_type==100:
-            self.data_x = datax
-            self.data_y = self.data
+
 
 
     def __getitem__(self, index):

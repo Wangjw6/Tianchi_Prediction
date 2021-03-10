@@ -264,7 +264,8 @@ class Exp_Informer(Exp_Basic):
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
-
+            train_loss = []
+            # torch.manual_seed(epoch)
             self.model.train()
             for index in range(len(train_data_loaders)):
                 train_loader = train_data_loaders[index]
@@ -286,21 +287,17 @@ class Exp_Informer(Exp_Basic):
                     dec_inp = torch.cat([batch_y[:, :self.args.label_len, :-1], dec_inp],
                                         dim=1).double()  # .to(self.device)
                     # encoder - decoder
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                    # batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
+                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24)
+                    batch_y = batch_y[:, -self.args.pred_len:, -1].view(-1, 24)  # .to(self.device)
 
-                    loss = 0
-                    for k in range(len(outputs)):
-                        loss+=criterion(outputs[k].view(-1, (k+1)*6),batch_y[:, -(k+1)*6:, -1].view(-1, outputs[k].size(1)))
-                    # loss = criterion(outputs, batch_y)# + 0.1*corr
+                    loss = criterion(outputs, batch_y)# + 0.1*corr
 
                     train_loss.append(loss.item())
 
                     loss.backward()
                     model_optim.step()
-
-                print('Finished Index',index,'Loss',np.average(train_loss),'Cost',time.time()-begin_)
-
+                print('INDEX Finished',index, 'train loss',np.average(train_loss),'COST',time.time()-begin_)
+            train_loss = np.average(train_loss)
             vali_loss, mae, score = self.test('1')
             early_stopping(-score, self.model, path)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} score: {4:.7f}".format(
@@ -343,19 +340,13 @@ class Exp_Informer(Exp_Basic):
             dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).double()
             dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).double()  # .to(self.device)
             # encoder - decoder
-            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)#.view(-1, 24).detach()
+            outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark).view(-1, 24).detach()
             batch_y = batch_y[:, -self.args.pred_len:, -1]  # .to(self.device)
 
-            pred = np.zeros([batch_y.size(0),len(outputs),24])
-            for k in range(len(outputs)):
-                pred[:,k,-(k+1)*6:] = outputs[k].view(-1, (k+1)*6).detach().cpu().numpy()
-
-            pred = np.sum(pred,axis=1)
-            for k in range(len(outputs)):
-                pred[:,:(k+1)*6] = pred[:,:(k+1)*6]/(k+1)
-            # pred = outputs.detach().cpu().numpy()  # .squeeze()
+            pred = outputs.detach().cpu().numpy()  # .squeeze()
             true = batch_y.detach().cpu().numpy()  # .squeeze()
 
+            hiss.append(batch_x.detach().cpu().numpy())
             preds.append(pred)
             trues.append(true)
 
@@ -365,7 +356,11 @@ class Exp_Informer(Exp_Basic):
         print('test shape:', preds.shape, trues.shape)
         preds = preds.reshape(-1, 24)
         trues = trues.reshape(-1, 24)
-
+        data = pd.DataFrame()
+        for i in range(preds.shape[0]):
+            data['pred_' + str(i)] = preds[i]
+            data['true_' + str(i)] = trues[i]
+        data.to_csv('result.csv')
         print('test shape:', preds.shape, trues.shape)
         try:
             mae, mse, rmse, mape, mspe = metric(preds[:, :, -1], trues[:, :, -1])
@@ -415,12 +410,7 @@ class Exp_Informer(Exp_Basic):
             batch_x = torch.tensor(val, dtype=torch.double).permute(0, 3, 1, 2).reshape(1, 12, -1)
             batch_x_mark = batch_x
             outputs = self.model(batch_x, batch_x, batch_x, batch_x)
-            pred = np.zeros([batch_x.size(0),len(outputs),24])
-            for k in range(len(outputs)):
-                pred[:,k,-(k+1)*6:] = outputs[k].view(-1, (k+1)*6).detach().cpu().numpy()
-            pred = np.sum(pred,axis=1)
-            for k in range(len(outputs)):
-                pred[:,:(k+1)*6] = pred[:,:(k+1)*6]/(k+1)
+            pred = outputs.detach().cpu().numpy()
             pred = pred.reshape(-1, )
             test_predicts_dict[file_name] = pred
         #     test_predicts_dict[file_name] = model.predict(val.reshape([-1,12])[0,:])

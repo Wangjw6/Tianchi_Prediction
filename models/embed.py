@@ -110,6 +110,10 @@ class SpatialEmbedding(nn.Module):
         out = []
         for j in range(x.size(1)):
             conv = x[:,j,:].view(-1,4,24,72)
+            conv[:,0,:,:] = conv[:,0,:,:]/2.
+            conv[:, 1, :, :] = conv[:,1,:,:]/50.
+            conv[:,2,:,:] = conv[:,2,:,:]/200.
+            conv[:, 3, :, :] = conv[:, 3, :, :] / 200.
             for i in range(len(self.spatialConv)):
                 conv = self.spatialConv[i](conv)
                 conv = self.spatialPool(conv)
@@ -125,9 +129,10 @@ class DataEmbedding(nn.Module):
         super(DataEmbedding, self).__init__()
 
         self.spatial_embedding = SpatialEmbedding(c_in=4,c_out=2,d_model=d_model)
+        self.position_embedding = PositionalEmbedding(d_model)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
         # x = self.value_embedding(x) + self.position_embedding(x) + self.temporal_embedding(x_mark)
-        x = self.spatial_embedding(x)
-        return self.dropout(x)
+        x = self.spatial_embedding(x)+self.position_embedding(x)
+        return x
