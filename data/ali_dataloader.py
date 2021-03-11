@@ -33,14 +33,12 @@ def data_to_pd(path_feature='G:\\base\\aliyun\\SODA_train.npy',path_target='G:\\
     feature = np.load(path_feature)
     f =  ['sst','t300', 'ua','va']
     for i in range(feature.shape[0]):
-        # spatial-wise feature accumulation
-        ## mean
         s = expand_year2(feature[i])
         s1 = s.reshape(target.shape[0],-1)
         for j in range(s1.shape[1]):
             pd_data[f[i]+'_'+str(j)] = s1[:,j].tolist()
 
-    pd_data['OT'] = target.tolist()
+    pd_data['nino'] = target.tolist()
     return pd_data
 
 

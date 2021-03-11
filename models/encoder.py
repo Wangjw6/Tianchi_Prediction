@@ -56,20 +56,15 @@ class Encoder(nn.Module):
         self.conv_layers = nn.ModuleList(conv_layers) if conv_layers is not None else None
         self.norm = norm_layer
         self.tcn_layers = tcn_layers
-    def forward(self, x, attn_mask=None):
+    def forward(self, x):
         # x [B, L, D]
         if self.tcn_layers is not None:
             x = self.tcn_layers(x)
-            # x = self.attn_layers[-1](x)
         else:
             if self.conv_layers is not None:
                 for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                    # x = attn_layer(x, attn_mask=attn_mask)
                     x = conv_layer(x)
                 x = self.attn_layers[-1](x)
-            else:
-                for attn_layer in self.attn_layers:
-                    x = attn_layer(x, attn_mask=attn_mask)
 
         if self.norm is not None:
             x = self.norm(x)
