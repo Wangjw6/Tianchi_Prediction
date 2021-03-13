@@ -278,8 +278,8 @@ class Exp_Predict(Exp_Basic):
         for i in range(preds.shape[0]):
             data['pred_' + str(i)] = preds[i]
             data['true_' + str(i)] = trues[i]
-        data.to_csv('result.csv')
-        print('test shape:', preds.shape, trues.shape)
+        # data.to_csv('result.csv')
+        print('tset_typeest shape:', preds.shape, trues.shape)
         try:
             mae, mse, rmse, mape, mspe = metric(preds[:, :, -1], trues[:, :, -1])
             score = evaluate_metrics(preds[:, :, -1], trues[:, :, -1])
@@ -289,8 +289,6 @@ class Exp_Predict(Exp_Basic):
         print('mse:{}, mae:{}, score:{}'.format(mse, mae, score))
         return mse, mae, score
 
-
-        return
 
     def compet(self, ):
         # print('working directory', os.getcwd())

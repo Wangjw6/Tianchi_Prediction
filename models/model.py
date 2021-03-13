@@ -41,7 +41,7 @@ class Model(nn.Module):
             norm_layer=torch.nn.LayerNorm(d_model)
         )
         self.hidden  = d_model*12
-        self.predict = nn.Linear(self.hidden, 24, bias=True)
+        self.predict = nn.Linear(self.hidden, 24, bias=None)
         self.d_model = d_model
     def forward(self, x_enc):
         enc_out = self.enc_embedding(x_enc)

@@ -19,7 +19,6 @@ class Dataset_Ali(Dataset):
         self.label_len = 12
         self.pred_len = 24
         self.data_type = data_type
-        self.set_type = 0
         self.data = data
         self.__read_data__()
 
