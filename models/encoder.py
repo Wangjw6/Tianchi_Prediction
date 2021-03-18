@@ -64,7 +64,7 @@ class Encoder(nn.Module):
             if self.conv_layers is not None:
                 for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
                     x = conv_layer(x)
-                x = self.attn_layers[-1](x)
+                # x = self.attn_layers[-1](x)
 
         if self.norm is not None:
             x = self.norm(x)

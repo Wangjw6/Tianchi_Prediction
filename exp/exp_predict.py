@@ -100,6 +100,19 @@ class Exp_Predict(Exp_Basic):
                     test_data_loaders.append(test_data_loader)
                     vali_data_loaders.append(vali_data_loader)
                     print('prepare CMIP6 train data', mode )
+            try:
+                df_raw = data_to_pd()
+            except:
+                df_raw = data_to_pd(path_feature='/home/project/data/SODA_train.npy',
+                                    path_target='/home/project/data/SODA_label.npy')
+            train_data_loader, test_data_loader, vali_data_loader = self.assist(Data, args, df_raw[:int(df.shape[0] * 0.8)],
+                                                                                df[int(df.shape[0] * 0.8):int(
+                                                                                    df.shape[0] * 0.9)],
+                                                                                df[int(df.shape[0] * 0.9):]
+                                                                                )
+            train_data_loaders.append(train_data_loader)
+            test_data_loaders.append(test_data_loader)
+            vali_data_loaders.append(vali_data_loader)
 
 
         if flag == None:

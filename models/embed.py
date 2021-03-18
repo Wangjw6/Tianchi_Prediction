@@ -38,10 +38,11 @@ class SpatialEmbedding(nn.Module):
             conv_layes.append(nn.Conv2d(in_channels=c_in, out_channels=c_out,kernel_size =(3, 3), stride=(1, 1), padding=(1, 1)))
             c_out-=1
         self.spatialConv = nn.ModuleList(conv_layes)
-
         self.spatialPool = nn.MaxPool2d((2, 2), stride=(1, 1))
         self.fc = nn.Linear(22*70,d_model)
         self.d_model = d_model
+        self.dropout = nn.Dropout(p=0.02)
+        self.activation = nn.ReLU()
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,mode='fan_in',nonlinearity='leaky_relu')
@@ -51,13 +52,13 @@ class SpatialEmbedding(nn.Module):
         for j in range(x.size(1)):
             conv = x[:,j,:].view(-1,4,24,72)
             conv[:,0,:,:] = conv[:,0,:,:]/2.
-            conv[:, 1, :, :] = conv[:,1,:,:]/50.
+            conv[:,1,:,:] = conv[:,1,:,:]/50.
             conv[:,2,:,:] = conv[:,2,:,:]/200.
-            conv[:, 3, :, :] = conv[:, 3, :, :] / 200.
+            conv[:,3,:,:] = conv[:,3,:,:]/200.
             for i in range(len(self.spatialConv)):
                 conv = self.spatialConv[i](conv)
                 conv = self.spatialPool(conv)
-
+            # conv = self.activation(conv)
             conv = self.fc(conv.view(-1,22*70))
             out.append(conv)
         out = torch.cat(out,1)
@@ -73,5 +74,7 @@ class DataEmbedding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x):
+        # self.spatial_embedding(x)  # [16,12,32]
+        # self.position_embedding(x) #[1,12,32]
         x = self.spatial_embedding(x)+self.position_embedding(x)
         return x
